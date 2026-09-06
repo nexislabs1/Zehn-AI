@@ -81,9 +81,6 @@ body { display: flex; position: relative; }
 
 .login-disclaimer { margin-top: 20px; font-size: 11px; color: var(--text-faint); }
 
-/* NOTE: removed z-index:1 here — it was creating a stacking context that trapped
-   the sidebar (z-index 20 on mobile) below the sidebar-overlay (z-index 15 on body),
-   causing the mobile "New Chat" tap to randomly hit the overlay instead of the button. */
 .app-shell { display: flex; width: 100%; position: relative; }
 
 .sidebar {
@@ -171,7 +168,6 @@ body { display: flex; position: relative; }
 .chat-window::-webkit-scrollbar { width: 8px; }
 .chat-window::-webkit-scrollbar-thumb { background: var(--bg-surface-2); border-radius: 8px; }
 
-/* Minor feature: smooth crossfade when switching between chats, instead of an abrupt swap */
 .chat-window { animation: chatSwitchFade 0.2s ease; }
 @keyframes chatSwitchFade { from { opacity: 0.4; } to { opacity: 1; } }
 
@@ -205,6 +201,12 @@ body { display: flex; position: relative; }
 .bubble code { font-family: var(--font-mono); background: var(--bg-surface-2); padding: 2px 6px; border-radius: 5px; font-size: 13px; color: #7C3AED; }
 .bubble pre { background: #1B1B22; border: 1px solid var(--border-subtle); padding: 14px; border-radius: 10px; overflow-x: auto; margin: 8px 0; }
 .bubble pre code { background: none; padding: 0; color: #EDEDF5; }
+
+/* Minor feature: nicer, visible scrollbar inside code blocks (previously invisible/default) */
+.bubble pre::-webkit-scrollbar { height: 6px; }
+.bubble pre::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 6px; }
+.bubble pre::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+.bubble pre { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent; }
 
 .cursor-blink { display: inline-block; width: 2px; height: 1em; background: var(--accent); margin-left: 2px; vertical-align: text-bottom; animation: blink 0.9s step-start infinite; }
 @keyframes blink { 50% { opacity: 0; } }
@@ -241,6 +243,10 @@ body { display: flex; position: relative; }
 #sendBtn:active { transform: scale(0.94); }
 #sendBtn:disabled { background: var(--bg-surface-2); color: var(--text-faint); cursor: not-allowed; transform: none; box-shadow: none; }
 
+/* Minor feature: gentle pulse on the send button while a reply is loading, so it reads as "working" not "broken" */
+#sendBtn:disabled { animation: sendPulse 1.2s ease-in-out infinite; }
+@keyframes sendPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
 .disclaimer { text-align: center; font-size: 11px; color: var(--text-faint); padding: 6px 0 14px; }
 
 @media (max-width: 760px) {
@@ -250,25 +256,30 @@ body { display: flex; position: relative; }
   .chat-header { padding: 10px 16px; }
   .quick-prompts { grid-template-columns: 1fr; }
 
-  /* Smoother scrolling and touch response on mobile */
   .chat-window { -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
   .sidebar { -webkit-overflow-scrolling: touch; }
 
-  /* Bigger, easier tap targets */
   .sidebar-toggle, .attach-btn, .logout-btn, .msg-action-btn, .msg-copy-btn { min-width: 40px; min-height: 40px; }
   #sendBtn { width: 40px; height: 40px; }
 
-  /* Minor feature: bigger, more forgiving tap targets specifically for New Chat + history rows,
-     so taps land reliably instead of missing or double-triggering nearby elements */
   .new-chat-btn { min-height: 46px; padding: 12px 14px; }
   .history-item { min-height: 44px; padding: 11px 10px; }
   .history-item .delete-chat { opacity: 1; padding: 4px; min-width: 28px; min-height: 28px; display: flex; align-items: center; justify-content: center; }
 
-  /* Prevent iOS zoom-on-focus by keeping inputs at 16px+ */
   #userInput, .rename-input { font-size: 16px; }
 
-  /* Reduce animation delay stacking so lists feel snappier on mobile */
-  .history-item, .suggestion-chip { animation-duration: 0.15s; }
+  /* Performance fix: on mobile, cut every non-essential decorative animation.
+     These were compounding (each message = multiple animations firing at once)
+     and were the main reason the app felt laggy everywhere, not just at one spot. */
+  .history-item, .suggestion-chip { animation: none !important; }
+  .message-row { animation: none !important; }
+  .message-row .avatar { animation: none !important; }
+  .message-row.user .bubble { animation: none !important; }
+  .chat-window { animation: none !important; }
+  .avatar.is-thinking { animation: none !important; }
+  .status-dot::after { animation: none !important; }
+  .wifi-icon svg { animation: none !important; }
+  #sendBtn:disabled { animation: none !important; }
 }
 
 button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -309,8 +320,6 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent);
 .wifi-icon { display: flex; align-items: center; color: #21B36A; transition: color 0.2s; }
 .status-dot.offline ~ .wifi-icon, #statusDot.offline + .wifi-icon { color: #d9436b; }
 
-/* Minor feature: overlay now blurs the background behind the sidebar on mobile,
-   instead of just darkening it, for a more polished feel */
 .sidebar-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.25); backdrop-filter: blur(2px);
   z-index: 15; opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
@@ -388,7 +397,6 @@ button, .status-dot, .wifi-icon, .avatar { -webkit-tap-highlight-color: transpar
 
 /* ===== Micro-interactions batch ===== */
 
-/* Icon buttons: subtle scale + rotate on hover */
 .logout-btn:hover svg { transform: rotate(-8deg); transition: transform 0.2s ease; }
 .new-chat-btn:hover svg { transform: rotate(90deg); transition: transform 0.25s ease; }
 .sidebar-toggle:hover svg { transform: scale(1.15); transition: transform 0.15s ease; }
@@ -396,18 +404,14 @@ button, .status-dot, .wifi-icon, .avatar { -webkit-tap-highlight-color: transpar
 .copy-code-btn:active { transform: scale(0.94); }
 .delete-chat:hover svg { transform: scale(1.2) rotate(-6deg); transition: transform 0.15s ease; }
 
-/* Avatar pop-in when a new message appears */
 .message-row .avatar { animation: avatarPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
 @keyframes avatarPop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-/* Brand mark hover wiggle */
 .brand-mark:hover { animation: wiggle 0.4s ease; }
 @keyframes wiggle { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
 
-/* Google button icon nudge on hover */
 .google-btn:hover svg { transform: translateY(-1px); transition: transform 0.15s ease; }
 
-/* Status dot ripple */
 .status-dot::after {
   content: ""; position: absolute; width: 7px; height: 7px; border-radius: 50%;
   background: inherit; animation: ripple 2s ease-out infinite;
@@ -415,21 +419,13 @@ button, .status-dot, .wifi-icon, .avatar { -webkit-tap-highlight-color: transpar
 .status-dot { position: relative; }
 @keyframes ripple { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2.5); opacity: 0; } }
 
-/* Wifi icon subtle breathe */
 .wifi-icon svg { animation: breathe 3s ease-in-out infinite; }
 @keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
-/* Sidebar history items: staggered entrance */
-.history-item { animation: slideInLeft 0.25s ease backwards; }
-.history-item:nth-child(1) { animation-delay: 0.02s; }
-.history-item:nth-child(2) { animation-delay: 0.05s; }
-.history-item:nth-child(3) { animation-delay: 0.08s; }
-.history-item:nth-child(4) { animation-delay: 0.11s; }
-.history-item:nth-child(5) { animation-delay: 0.14s; }
-.history-item:nth-child(n+6) { animation-delay: 0.16s; }
-@keyframes slideInLeft { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+/* Removed: staggered entrance animation on .history-item — this was replaying on
+   EVERY sidebar re-render (i.e. after every single message sent), which is what
+   made the whole app feel constantly janky rather than janky at one specific spot. */
 
-/* Suggestion chips: staggered pop-in */
 .suggestion-chip { animation: chipIn 0.3s ease backwards; }
 .suggestion-chip:nth-child(1) { animation-delay: 0.05s; }
 .suggestion-chip:nth-child(2) { animation-delay: 0.1s; }
@@ -439,63 +435,46 @@ button, .status-dot, .wifi-icon, .avatar { -webkit-tap-highlight-color: transpar
 
 .suggestion-chip:active { transform: scale(0.97); }
 
-/* Bubble: gentle hover lift */
 .message-row.assistant .bubble:hover { box-shadow: 0 4px 16px rgba(20,20,40,0.08); transition: box-shadow 0.2s ease; }
 
-/* Send button: press ripple feel */
 #sendBtn svg { transition: transform 0.15s ease; }
 #sendBtn:hover svg { transform: translateX(1px); }
 #sendBtn:active svg { transform: translateX(2px) scale(0.9); }
 
-/* Scroll-to-bottom bounce-in */
 .scroll-bottom-btn.visible { animation: bounceIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
 @keyframes bounceIn { from { transform: translateX(-50%) scale(0.7); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 
-/* Input bar: focus glow pulse once */
 .input-bar:focus-within { animation: focusPulse 0.4s ease; }
 @keyframes focusPulse { 0% { box-shadow: 0 0 0 0 var(--accent-glow); } 100% { box-shadow: 0 0 0 3px var(--accent-glow); } }
 
-/* Header title: crossfade on chat switch */
 .header-title { animation: fadeSwap 0.25s ease; }
 @keyframes fadeSwap { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Disclaimer text: gentle fade on load */
 .disclaimer { animation: fadeIn 0.6s ease 0.3s backwards; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Thinking status row entrance */
 .status-row { animation: fadeIn 0.2s ease; }
 
-/* Copy button success check: pop */
 .msg-copy-btn svg, .msg-action-btn svg { transition: transform 0.15s ease; }
 
-/* New chat button press feedback */
 .new-chat-btn:active { transform: scale(0.97); }
 
-/* Logout button hover background pulse */
 .logout-btn:hover { animation: none; }
 
-/* User bubble subtle entrance from the right */
 .message-row.user .bubble { animation: slideInRight 0.25s ease; }
 @keyframes slideInRight { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
 
-/* Welcome heading letter-spacing breathe (very subtle) */
 .welcome-screen h1 { animation: fadeIn 0.5s ease; }
 
-/* Login card google icon subtle rotate loop on idle (very slow, barely visible) */
 .login-mark svg { transition: transform 0.3s ease; }
 .login-card:hover .login-mark svg { transform: rotate(8deg) scale(1.05); }
 
-/* Sidebar user row hover */
 .user-row:hover { background: var(--bg-surface-2); border-radius: 8px; transition: background 0.15s ease; }
 
-/* Suggestion chip icon-less hover underline sweep (text emphasis) */
 .suggestion-chip { position: relative; overflow: hidden; }
 
-/* Rename input entrance */
 .rename-input { animation: fadeIn 0.15s ease; }
 
-/* Scrollbar thumb hover (webkit only) */
 .history-list::-webkit-scrollbar-thumb:hover, .chat-window::-webkit-scrollbar-thumb:hover { background: var(--accent-dim); }
 .history-list::-webkit-scrollbar { width: 5px; }
 .history-list::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 6px; }
@@ -528,7 +507,6 @@ button, .status-dot, .wifi-icon, .avatar { -webkit-tap-highlight-color: transpar
 .attachment-chip .remove-attachment { background: none; border: none; color: var(--text-faint); cursor: pointer; display: flex; padding: 2px; border-radius: 4px; }
 .attachment-chip .remove-attachment:hover { color: #d9436b; }
 
-/* Attachment shown inside a sent message bubble */
 .msg-attachment {
   display: flex; align-items: center; gap: 6px;
   font-size: 12px; color: var(--text-faint);
@@ -536,3 +514,15 @@ button, .status-dot, .wifi-icon, .avatar { -webkit-tap-highlight-color: transpar
   border-bottom: 1px solid var(--border-subtle);
 }
 .msg-attachment img { max-width: 160px; max-height: 160px; border-radius: 8px; display: block; margin-top: 4px; }
+
+/* Reduce GPU-heavy backdrop blur on mobile for smoother scrolling/performance */
+@media (max-width: 760px) {
+  .sidebar, .chat-header, .input-bar, .login-card, .sidebar-overlay {
+    backdrop-filter: none;
+  }
+  .sidebar { background: rgba(241, 239, 233, 0.97); }
+  .chat-header { background: rgba(255,255,255,0.97); }
+  .input-bar { background: rgba(255,255,255,0.98); }
+  .login-card { background: rgba(255, 255, 255, 0.97); }
+  .sidebar-overlay { background: rgba(0,0,0,0.35); }
+}
